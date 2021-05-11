@@ -4,7 +4,11 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_choix_list.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.test.adapter.ItemAdapter
+import com.example.test.adapter.ListAdapter
+import com.example.todolist.model.MyItem
 import kotlinx.android.synthetic.main.activity_show_list.*
 
 class ShowListActivity : AppCompatActivity(){
@@ -13,44 +17,37 @@ class ShowListActivity : AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_show_list)
-
-//        var pseudo: String? = intent.getStringExtra("pseudo")
         var list_name: String? = intent.getStringExtra("list")
+
+        val recyclerView = findViewById<RecyclerView>(R.id.reViewItem)
+        val items: MutableList<MyItem> = mutableListOf()
+
+        repeat(5){
+            items.add(MyItem("new${it+1}"))
+        }
+
+
+        val adapter = ItemAdapter(items)
+
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL,false)
 
         this.title = "Items of \"$list_name\" Todo-list"
 
-        cbItem1.setOnClickListener {
-            if (cbItem1.isChecked){
-                alerter("${cbItem1.text.toString()} has been done")
-            }else{
-                alerter("${cbItem1.text.toString()} to do")
-            }
-        }
-
-        cbItem2.setOnClickListener {
-            if (cbItem2.isChecked){
-                alerter("${cbItem2.text.toString()} has been done")
-            }else{
-                alerter("${cbItem2.text.toString()} to do")
-            }
-        }
-
-        cbItem3.setOnClickListener {
-            if (cbItem3.isChecked){
-                alerter("${cbItem3.text.toString()} has been done")
-            }else{
-                alerter("${cbItem3.text.toString()} to do")
-            }
-        }
-
-        et_new_item.setOnClickListener {
+        etNewItem.setOnClickListener {
             alerter("Add a Todo item")
-            // TODO:
         }
 
-        btnOK_item.setOnClickListener {
-            alerter("click on btnOK")
-            // TODO:
+        btnOKItem.setOnClickListener {
+            Log.i(CAT, "map: "+adapter.checkStatus.toString())
+            var newItemName = etNewItem.text.toString()
+            if (newItemName==null || newItemName==""){
+                alerter("Please enter the name of item")
+            }else {
+                alerter("Add \"$newItemName\"")
+                adapter.addData(newItemName)
+                etNewItem.setText("") //clear the input area
+            }
         }
     }
 

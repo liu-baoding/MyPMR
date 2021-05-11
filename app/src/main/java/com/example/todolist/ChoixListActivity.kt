@@ -3,82 +3,90 @@ package com.example.todolist
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.test.adapter.ListAdapter
+import com.example.todolist.model.MyList
 import kotlinx.android.synthetic.main.activity_choix_list.*
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_main.view.*
 
 
 class ChoixListActivity : AppCompatActivity(){
     val CAT: String = "TODO_LIST"
-    var last_list: Int = 0
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_choix_list)
-
-        last_list = liste3.id
-
         var pseudo: String? = intent.getStringExtra("pseudo")
+
+        val recyclerView = findViewById<RecyclerView>(R.id.reViewList)
+        val lists: MutableList<MyList> = mutableListOf()
+
+        repeat(5){
+            lists.add(MyList("new${it + 1}"))
+        }
+
+        val adapter = ListAdapter(lists)
+
+
+        val intent = Intent(this,ShowListActivity::class.java)
+        intent.putExtra("pseudo", pseudo)
+
+        adapter.setOnItemClickListener(object : ListAdapter.OnItemClickListener {
+            override fun onItemClick(position: Int) {
+                val listName = lists[position].listTextStr
+                alerter("this is $listName")
+                intent.putExtra("list", listName)
+                startActivity(intent)
+            }
+        })
+
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
         this.title="$pseudo's Todo-lists"
 
-        liste1.setOnClickListener {
-            alerter("this is ${liste1.text.toString()}")
-            Intent(this, ShowListActivity::class.java).apply {
-                putExtra("list", liste1.text.toString())
-                putExtra("pseudo", pseudo)
-                startActivity(this)
-            }
-        }
+//        liste1.setOnClickListener {
+//            alerter("this is ${liste1.text.toString()}")
+//            Intent(this, ShowListActivity::class.java).apply {
+//                putExtra("list", liste1.text.toString())
+//                putExtra("pseudo", pseudo)
+//                startActivity(this)
+//            }
+//        }
+//
+//        liste2.setOnClickListener {
+//            alerter("this is ${liste2.text.toString()}")
+//            Intent(this, ShowListActivity::class.java).apply {
+//                putExtra("list", liste2.text.toString())
+//                putExtra("pseudo", pseudo)
+//                startActivity(this)
+//            }
+//        }
+//
+//        liste3.setOnClickListener {
+//            alerter("this is ${liste3.text.toString()}")
+//            Intent(this, ShowListActivity::class.java).apply {
+//                putExtra("list", liste3.text.toString())
+//                putExtra("pseudo", pseudo)
+//                startActivity(this)
+//            }
+//        }
 
-        liste2.setOnClickListener {
-            alerter("this is ${liste2.text.toString()}")
-            Intent(this, ShowListActivity::class.java).apply {
-                putExtra("list", liste2.text.toString())
-                putExtra("pseudo", pseudo)
-                startActivity(this)
-            }
-        }
-
-        liste3.setOnClickListener {
-            alerter("this is ${liste3.text.toString()}")
-            Intent(this, ShowListActivity::class.java).apply {
-                putExtra("list", liste3.text.toString())
-                putExtra("pseudo", pseudo)
-                startActivity(this)
-            }
-        }
-
-        et_new_list.setOnClickListener {
+        etNewList.setOnClickListener {
             alerter("Add a Todo list")
-            // TODO:
         }
 
-        btnOK_list.setOnClickListener {
-            var new_list_name = et_new_list.text.toString()
-            if (new_list_name==null || new_list_name==""){
+        btnOKList.setOnClickListener {
+            var newListName = etNewList.text.toString()
+            if (newListName==null || newListName==""){
                 alerter("Please enter the name of list")
             }else {
-                alerter("Add a new list")
-                // add a new TextView
-                val layout = findViewById(R.id.choix_list) as ConstraintLayout
-//                val params = liste1.getLayoutParams() as ConstraintLayout.LayoutParams
-
-                var new_list = newList(this, new_list_name)
-
-                var newParams = new_list.get_params()
-
-//                val newParams = ConstraintLayout.LayoutParams(
-//                    ConstraintLayout.LayoutParams.WRAP_CONTENT,
-//                    ConstraintLayout.LayoutParams.WRAP_CONTENT
-//                )
-
-                layout.addView(new_list, -1, newParams)
+                alerter("Add \"$newListName\"")
+                adapter.addData(newListName)
+                etNewList.setText("") //clear the input area
             }
 
         }
