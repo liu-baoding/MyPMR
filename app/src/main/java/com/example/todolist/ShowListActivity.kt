@@ -13,6 +13,7 @@ import kotlinx.android.synthetic.main.activity_show_list.*
 
 class ShowListActivity : AppCompatActivity(){
     val CAT: String = "TODO_ITEM"
+    // add
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
