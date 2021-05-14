@@ -4,6 +4,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolist.R
@@ -21,6 +22,7 @@ class ListAdapter(private val dataset: MutableList<MyList>): RecyclerView.Adapte
 
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
         holder.bind((dataset[position]))
+        holder.numView.text = (position+1).toString()
 
         holder.itemView.setOnClickListener {
             if (mOnItemClickListener != null) {
@@ -43,6 +45,7 @@ class ListAdapter(private val dataset: MutableList<MyList>): RecyclerView.Adapte
 
     class ItemViewHolder(itemView: View): RecyclerView.ViewHolder(itemView){
         val textView = itemView.findViewById<TextView>(R.id.itemList)
+        val numView = itemView.findViewById<TextView>(R.id.number)
 
         fun bind(list: MyList) {
             textView.text = list.listTextStr

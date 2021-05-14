@@ -13,7 +13,7 @@ import kotlinx.android.synthetic.main.activity_show_list.*
 
 class ShowListActivity : AppCompatActivity(){
     val CAT: String = "TODO_ITEM"
-    // add
+    val context = this
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,8 +24,9 @@ class ShowListActivity : AppCompatActivity(){
         val items: MutableList<MyItem> = mutableListOf()
 
         repeat(5){
-            items.add(MyItem("new${it+1}"))
+            items.add(MyItem("new item ${it+1}"))
         }
+
 
 
         val adapter = ItemAdapter(items)
@@ -36,18 +37,19 @@ class ShowListActivity : AppCompatActivity(){
         this.title = "Items of \"$list_name\" Todo-list"
 
         etNewItem.setOnClickListener {
-            alerter("Add a Todo item")
+            ToastUtil.newToast(context,"Add a Todo item")
+
         }
 
         btnOKItem.setOnClickListener {
             Log.i(CAT, "map: "+adapter.checkStatus.toString())
             var newItemName = etNewItem.text.toString()
             if (newItemName==null || newItemName==""){
-                alerter("Please enter the name of item")
+                ToastUtil.newToast(context,"Please enter the name of item")
             }else {
-                alerter("Add \"$newItemName\"")
-                adapter.addData(newItemName)
-                etNewItem.setText("") //clear the input area
+                ToastUtil.newToast(context,"Add \"$newItemName\"")
+                adapter.addData(newItemName) // add new item
+                etNewItem.setText("") // clear the input area
             }
         }
     }
@@ -65,10 +67,10 @@ class ShowListActivity : AppCompatActivity(){
         super.onRestart()
     }
 
-    private fun alerter(s: String) {
-        Log.i(CAT, s)
-        var t = Toast.makeText(this, s, Toast.LENGTH_SHORT)
-        t.show()
-    }
+//    private fun alerter(s: String) {
+//        Log.i(CAT, s)
+//        var t = Toast.makeText(this, s, Toast.LENGTH_SHORT)
+//        t.show()
+//    }
 
 }

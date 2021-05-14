@@ -14,6 +14,7 @@ import kotlinx.android.synthetic.main.activity_choix_list.*
 
 class ChoixListActivity : AppCompatActivity(){
     val CAT: String = "TODO_LIST"
+    val context = this
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +26,7 @@ class ChoixListActivity : AppCompatActivity(){
         val lists: MutableList<MyList> = mutableListOf()
 
         repeat(5){
-            lists.add(MyList("new${it + 1}"))
+            lists.add(MyList("new list ${it + 1}"))
         }
 
         val adapter = ListAdapter(lists)
@@ -37,7 +38,7 @@ class ChoixListActivity : AppCompatActivity(){
         adapter.setOnItemClickListener(object : ListAdapter.OnItemClickListener {
             override fun onItemClick(position: Int) {
                 val listName = lists[position].listTextStr
-                alerter("this is $listName")
+                ToastUtil.newToast(context,"this is $listName")
                 intent.putExtra("list", listName)
                 startActivity(intent)
             }
@@ -76,15 +77,15 @@ class ChoixListActivity : AppCompatActivity(){
 //        }
 
         etNewList.setOnClickListener {
-            alerter("Add a Todo list")
+            ToastUtil.newToast(context,"Add a Todo list")
         }
 
         btnOKList.setOnClickListener {
             var newListName = etNewList.text.toString()
             if (newListName==null || newListName==""){
-                alerter("Please enter the name of list")
+                ToastUtil.newToast(context,"Please enter the name of list")
             }else {
-                alerter("Add \"$newListName\"")
+                ToastUtil.newToast(context,"Add \"$newListName\"")
                 adapter.addData(newListName)
                 etNewList.setText("") //clear the input area
             }
@@ -105,11 +106,11 @@ class ChoixListActivity : AppCompatActivity(){
         super.onRestart()
     }
 
-    private fun alerter(s: String) {
-        Log.i(CAT, s)
-        var t = Toast.makeText(this, s, Toast.LENGTH_SHORT)
-        t.show()
-    }
+//    private fun alerter(s: String) {
+//        Log.i(CAT, s)
+//        var t = Toast.makeText(this, s, Toast.LENGTH_SHORT)
+//        t.show()
+//    }
 
 //    override fun onClick(v: View?) {
 //        when(v?.id){

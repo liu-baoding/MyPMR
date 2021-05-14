@@ -1,5 +1,6 @@
 package com.example.todolist
 
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -29,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         editor = sp.edit()
 
         btnOK.setOnClickListener {
-            alerter("click on btnOK")
+            ToastUtil.newToast(this,"click on btnOK")
             if (cbRemember.isChecked) {
                 editor.putString("login", pseudo.text.toString())
                 editor.commit()
@@ -41,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         cbRemember.setOnClickListener {
-            alerter("click on cb")
+            ToastUtil.newToast(this,"click on cb")
             editor.putBoolean("remember", cbRemember.isChecked)
             editor.commit()
             if (!cbRemember.isChecked) {
@@ -61,7 +62,7 @@ class MainActivity : AppCompatActivity() {
         val id = item.itemId
         when (id) {
             R.id.menu_settings -> {
-                alerter("Menu : click on preferences")
+                ToastUtil.newToast(this,"Menu : click on preferences")
                 val iGP = Intent(this, SettingsActivity::class.java)
                 iGP.apply {
 //                    putExtra("URL","http://tomnab.fr/fixture/")
@@ -99,10 +100,11 @@ class MainActivity : AppCompatActivity() {
         super.onRestart()
     }
 
-    private fun alerter(s: String) {
-        Log.i(CAT, s)
-        var t = Toast.makeText(this, s, Toast.LENGTH_SHORT)
-        t.show()
-    }
+//    public fun alerter(context: Context, s: String) {
+//        Log.i(CAT, s)
+//        ToastUtil.newToast(context, s);
+//        var t = Toast.makeText(context, s, Toast.LENGTH_SHORT)
+//        t.show()
+//    }
 
 }
