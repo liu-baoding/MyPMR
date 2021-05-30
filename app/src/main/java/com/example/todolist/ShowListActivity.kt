@@ -1,32 +1,42 @@
 package com.example.todolist
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.test.adapter.ItemAdapter
-import com.example.test.adapter.ListAdapter
-import com.example.todolist.model.MyItem
+import com.example.todolist.model.ItemToDo
+import com.example.todolist.model.ListeToDo
+import com.example.todolist.model.ProfilListeToDo
 import kotlinx.android.synthetic.main.activity_show_list.*
+
 
 class ShowListActivity : AppCompatActivity(){
     val CAT: String = "TODO_ITEM"
     val context = this
+    lateinit var profil: ProfilListeToDo
+    var whichList: Int = 0
+    lateinit var listTodo: ListeToDo
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_show_list)
-        var list_name: String? = intent.getStringExtra("list")
+        this.profil = intent.getSerializableExtra("profil") as ProfilListeToDo
+        whichList = intent.getIntExtra("whichList",0)
+        listTodo = profil.mesListeToDo[whichList]
+        var list_name = listTodo.titreListeToDo
 
         val recyclerView = findViewById<RecyclerView>(R.id.reViewItem)
-        val items: MutableList<MyItem> = mutableListOf()
+        val items: MutableList<ItemToDo> = mutableListOf()
 
-        repeat(5){
-            items.add(MyItem("new item ${it+1}"))
-        }
+        this.title = "Items of \"$list_name\" Todo-list"
 
+        // to test the function
+//        repeat(5){
+//            items.add(ItemToDo("new item ${it+1}"))
+//        }
 
 
         val adapter = ItemAdapter(items)
@@ -34,7 +44,12 @@ class ShowListActivity : AppCompatActivity(){
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL,false)
 
-        this.title = "Items of \"$list_name\" Todo-list"
+        // load existed ListeToDo
+        if(listTodo.lesItems!=null) {
+            for (item: ItemToDo in listTodo.lesItems) {
+                adapter.addData(item)
+            }
+        }
 
         etNewItem.setOnClickListener {
             ToastUtil.newToast(context,"Add a Todo item")
@@ -48,7 +63,13 @@ class ShowListActivity : AppCompatActivity(){
                 ToastUtil.newToast(context,"Please enter the name of item")
             }else {
                 ToastUtil.newToast(context,"Add \"$newItemName\"")
-                adapter.addData(newItemName) // add new item
+
+                // add new item
+                var newItem : ItemToDo = ItemToDo(newItemName)
+                adapter.addData(newItem) // add new item
+
+                listTodo.ajouteItem(newItem)
+
                 etNewItem.setText("") // clear the input area
             }
         }
@@ -67,10 +88,12 @@ class ShowListActivity : AppCompatActivity(){
         super.onRestart()
     }
 
-//    private fun alerter(s: String) {
-//        Log.i(CAT, s)
-//        var t = Toast.makeText(this, s, Toast.LENGTH_SHORT)
-//        t.show()
-//    }
+    // pass data to ChoixListActivity when press "back"
+    override fun onBackPressed() {
+        val intent = Intent()
+        intent.putExtra("profil", profil)
+        setResult(RESULT_OK, intent)
+        super.onBackPressed()
+    }
 
 }

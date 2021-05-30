@@ -1,17 +1,15 @@
 package com.example.test.adapter
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolist.R
-import com.example.todolist.model.MyList
+import com.example.todolist.model.ListeToDo
 
 
-class ListAdapter(private val dataset: MutableList<MyList>): RecyclerView.Adapter<ListAdapter.ItemViewHolder>()  {
+class ListAdapter(private val dataset: MutableList<ListeToDo>): RecyclerView.Adapter<ListAdapter.ItemViewHolder>()  {
 
     private var mOnItemClickListener: OnItemClickListener? = null
 
@@ -21,7 +19,7 @@ class ListAdapter(private val dataset: MutableList<MyList>): RecyclerView.Adapte
     }
 
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
-        holder.bind((dataset[position]))
+        holder.bind(dataset[position])
         holder.numView.text = (position+1).toString()
 
         holder.itemView.setOnClickListener {
@@ -35,7 +33,9 @@ class ListAdapter(private val dataset: MutableList<MyList>): RecyclerView.Adapte
 
     public fun addData(text: String) {
         // add data in the list to display
-        dataset.add(MyList(text))
+        var uneListe: ListeToDo = ListeToDo()
+        uneListe.titreListeToDo = text
+        dataset.add(uneListe)
         notifyItemChanged(dataset.size)
     }
 
@@ -47,8 +47,8 @@ class ListAdapter(private val dataset: MutableList<MyList>): RecyclerView.Adapte
         val textView = itemView.findViewById<TextView>(R.id.itemList)
         val numView = itemView.findViewById<TextView>(R.id.number)
 
-        fun bind(list: MyList) {
-            textView.text = list.listTextStr
+        fun bind(list: ListeToDo) {
+            textView.text = list.titreListeToDo
         }
     }
 

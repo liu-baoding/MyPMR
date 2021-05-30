@@ -1,6 +1,5 @@
 package com.example.todolist
 
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -9,15 +8,23 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.todolist.model.ProfilListeToDo
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
+
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
     val CAT: String = "TODO_MAIN"
     private lateinit var sp: SharedPreferences
     private lateinit var editor: SharedPreferences.Editor
+    val requestCode = 1
+    lateinit var profil: ProfilListeToDo
+    private lateinit var spJson: SharedPreferences
+    private lateinit var editorJson: SharedPreferences.Editor
+    private lateinit var login: String
+    val gson = Gson()
 
     // TODO: API
 
@@ -29,15 +36,35 @@ class MainActivity : AppCompatActivity() {
         sp = PreferenceManager.getDefaultSharedPreferences(this)
         editor = sp.edit()
 
+        cbRemember.isChecked=true // remember the user in default
+
+        // a SP object to pass messenger between activities
+        spJson = getSharedPreferences("SP_Data_List", MODE_PRIVATE)
+        editorJson = spJson.edit()
+
         btnOK.setOnClickListener {
-            ToastUtil.newToast(this,"click on btnOK")
-            if (cbRemember.isChecked) {
-                editor.putString("login", pseudo.text.toString())
-                editor.commit()
-            }
-            Intent(this, ChoixListActivity::class.java).apply {
-                putExtra("pseudo", pseudo.text.toString())
-                startActivity(this)
+            login = pseudo.text.toString()
+            if (login==""||login==null){
+                ToastUtil.newToast(this,"Please enter your login!")
+            } else {
+                ToastUtil.newToast(this, "click on btnOK")
+                if (cbRemember.isChecked) {
+                    editor.putString("login", login)
+                    editor.commit()
+                }
+
+                var jsonStr: String? = spJson.getString(login, "")
+
+                // create the profil of this login if not exists, load if exists
+                if (jsonStr == null || jsonStr == "") {
+                    profil = ProfilListeToDo(login)
+                } else {
+                    profil = gson.fromJson(jsonStr, ProfilListeToDo::class.java)
+                }
+
+                val intent = Intent(this, ChoixListActivity::class.java)
+                intent.putExtra("profil", this.profil)
+                startActivityForResult(intent, requestCode)
             }
         }
 
@@ -100,11 +127,21 @@ class MainActivity : AppCompatActivity() {
         super.onRestart()
     }
 
-//    public fun alerter(context: Context, s: String) {
-//        Log.i(CAT, s)
-//        ToastUtil.newToast(context, s);
-//        var t = Toast.makeText(context, s, Toast.LENGTH_SHORT)
-//        t.show()
-//    }
+    // receive data from ChoixListActivity after press "back"
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            requestCode -> if (resultCode === RESULT_OK) {
+                val returnData: ProfilListeToDo = data!!.getSerializableExtra("profil") as ProfilListeToDo
+                this.profil = returnData
+            }
+        }
+        Log.i(CAT, this.profil.toString())
+
+        // stock changes
+        val response = gson.toJson(this.profil)
+        editorJson.putString(login, java.lang.String.valueOf(response)) // save Json
+        editorJson.commit() // stock
+    }
 
 }
