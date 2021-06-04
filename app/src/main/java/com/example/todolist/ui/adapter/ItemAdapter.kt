@@ -7,7 +7,7 @@ import android.widget.CheckBox
 import android.widget.CompoundButton
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolist.R
-import com.example.todolist.ToastUtil
+import com.example.todolist.ui.ToastUtil
 import com.example.todolist.model.ItemToDo
 
 

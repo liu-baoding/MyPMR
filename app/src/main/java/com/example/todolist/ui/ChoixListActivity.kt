@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.test.adapter.ListAdapter
+import com.example.todolist.R
 import com.example.todolist.model.ListeToDo
 import com.example.todolist.model.ProfilListeToDo
 import kotlinx.android.synthetic.main.activity_choix_list.*
@@ -47,14 +48,14 @@ class ChoixListActivity : AppCompatActivity(){
         val adapter = ListAdapter(lists)
 
         // start ShowListActivity
-        val intent = Intent(this,ShowListActivity::class.java)
+        val intent = Intent(this, ShowListActivity::class.java)
         intent.putExtra("pseudo", pseudo)
 
         // action when click on the list
         adapter.setOnItemClickListener(object : ListAdapter.OnItemClickListener {
             override fun onItemClick(position: Int) {
                 val listName = lists[position].titreListeToDo
-                ToastUtil.newToast(context,"this is $listName")
+                ToastUtil.newToast(context, "this is $listName")
                 // pass the clicked list
                 intent.putExtra("profil", profil)
                 intent.putExtra("whichList",position)
@@ -68,15 +69,15 @@ class ChoixListActivity : AppCompatActivity(){
         this.title="$pseudo's Todo-lists" // title of this page
 
         etNewList.setOnClickListener {
-            ToastUtil.newToast(context,"Add a Todo list")
+            ToastUtil.newToast(context, "Add a Todo list")
         }
 
         btnOKList.setOnClickListener {
             var newListName = etNewList.text.toString()
             if (newListName==null || newListName==""){
-                ToastUtil.newToast(context,"Please enter the name of list")
+                ToastUtil.newToast(context, "Please enter the name of list")
             }else {
-                ToastUtil.newToast(context,"Add \"$newListName\"")
+                ToastUtil.newToast(context, "Add \"$newListName\"")
                 adapter.addData(newListName)
 
                 // add new list

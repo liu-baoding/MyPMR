@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.test.adapter.ItemAdapter
+import com.example.todolist.R
 import com.example.todolist.model.ItemToDo
 import com.example.todolist.model.ListeToDo
 import com.example.todolist.model.ProfilListeToDo
@@ -52,7 +53,7 @@ class ShowListActivity : AppCompatActivity(){
         }
 
         etNewItem.setOnClickListener {
-            ToastUtil.newToast(context,"Add a Todo item")
+            ToastUtil.newToast(context, "Add a Todo item")
 
         }
 
@@ -60,9 +61,9 @@ class ShowListActivity : AppCompatActivity(){
             Log.i(CAT, "map: "+adapter.checkStatus.toString())
             var newItemName = etNewItem.text.toString()
             if (newItemName==null || newItemName==""){
-                ToastUtil.newToast(context,"Please enter the name of item")
+                ToastUtil.newToast(context, "Please enter the name of item")
             }else {
-                ToastUtil.newToast(context,"Add \"$newItemName\"")
+                ToastUtil.newToast(context, "Add \"$newItemName\"")
 
                 // add new item
                 var newItem : ItemToDo = ItemToDo(newItemName)

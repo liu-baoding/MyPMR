@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui
 
 import android.os.Bundle
 import android.preference.CheckBoxPreference
@@ -7,6 +7,7 @@ import android.preference.Preference
 import android.preference.PreferenceActivity
 import android.widget.Toast
 import androidx.annotation.Nullable
+import com.example.todolist.R
 
 @Suppress("DEPRECATION")
 class SettingsActivity() : PreferenceActivity(), Preference.OnPreferenceChangeListener {

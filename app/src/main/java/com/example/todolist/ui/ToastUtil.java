@@ -1,4 +1,4 @@
-package com.example.todolist;
+package com.example.todolist.ui;
 
 import android.content.Context;
 import android.widget.Toast;
