@@ -11,8 +11,8 @@ import com.example.todolist.R
 
 @Suppress("DEPRECATION")
 class SettingsActivity() : PreferenceActivity(), Preference.OnPreferenceChangeListener {
-    var cbp: CheckBoxPreference? = null
-    var edtp: EditTextPreference? = null
+    private var cbp: CheckBoxPreference? = null
+    private var edtp: EditTextPreference? = null
 
     public override fun onCreate(@Nullable savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

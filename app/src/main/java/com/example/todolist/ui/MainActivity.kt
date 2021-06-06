@@ -13,7 +13,6 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.example.todolist.R
 import com.example.todolist.data.DataProvider
-import com.example.todolist.model.ProfilListeToDo
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
@@ -21,27 +20,24 @@ import kotlinx.coroutines.*
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
-    val CAT: String = "TODO_MAIN"
+    private val CAT: String = "TODO_MAIN"
     private lateinit var sp: SharedPreferences
     private lateinit var editor: SharedPreferences.Editor
-    val requestCode = 1
-    lateinit var profil: ProfilListeToDo
     private lateinit var spJson: SharedPreferences
     private lateinit var editorJson: SharedPreferences.Editor
     private lateinit var login: String
     private lateinit var password: String
     private lateinit var token: String
-    private var isSuccess: Boolean = false
+    private var success: Boolean = false
     val gson = Gson()
 
-    // TODO: API
+    // coroutine
     private val activityScope = CoroutineScope(
         SupervisorJob() +
                 Dispatchers.Main
     )
-    var job : Job? = null
-//    private lateinit var postAdapter: PostAdapter
 
+    // initialize onCreate
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -50,76 +46,94 @@ class MainActivity : AppCompatActivity() {
         sp = PreferenceManager.getDefaultSharedPreferences(this)
         editor = sp.edit()
 
-        cbRemember.isChecked=false // don't remember the user in default
+        cbRemember.isChecked = false // don't remember the user in default
 
         // a SP object to pass messenger between activities
         spJson = getSharedPreferences("SP_Data_List", MODE_PRIVATE)
         editorJson = spJson.edit()
 
+        // press OK to get authentication and start next activity
         btnOK.setOnClickListener {
             login = edtPseudo.text.toString()
             password = edtPassword.text.toString()
+
             // login can't be empty
-            if (login==""||login==null){
+            if (login == "") {
                 ToastUtil.newToast(this, "Please enter your login!")
             } else {
-                // get authentication
-                signInGetToken("liu", "baoding")
+                val intent = Intent(this, ChoixListActivity::class.java)
+                intent.putExtra("pseudo", login)
 
-                // if authenticated
-                if (isSuccess){
-                    // save settings
-                    if (cbRemember.isChecked) {
-                        editor.putString("login", login)
+                // get authentication, block Main thread before finished, save token of user
+                runBlocking {
+                    Log.d(CAT, "runBlocking...  currentThread：${Thread.currentThread().name}")
+                    val job = launch {
+                        try {
+//                            // test use
+//                            val gets = DataProvider.signIn("liu", "baoding")
+                            val gets = DataProvider.signIn(login, password)
+                            val success = gets.success.toBoolean()
+                            this@MainActivity.success = success
+                            val token = gets.token
+                            this@MainActivity.token = token
+                            // save token of user
+                            // To save token for all users (check the cb or not), this
+                            // can't be in the same PreferenceCategory in the XML file
+                            editor.putString("edtToken", token)
+                            editor.commit()
+                        } catch (e: Exception) {
+                            // reset the field success
+                            this@MainActivity.success = false
+                            ToastUtil.newToast(this@MainActivity, "ERROR!" + "\n" + "${e.message}")
+                            Log.i(CAT, "${e.message}")
+                        }
                     }
-                    // save token of user
-                    editor.putString("edtToken", token)
+                    job.join()
+                }
+
+                // save settings
+                if (cbRemember.isChecked) {
+                    editor.putString("login", login)
+                    editor.putString("password", password)
                     editor.commit()
+                }
 
-                    // TODO to be changed
-                    var jsonStr: String? = spJson.getString(login, "")
-
-                    // create the profil of this login if not exists, load if exists
-                    if (jsonStr == null || jsonStr == "") {
-                        profil = ProfilListeToDo(login)
-                    } else {
-                        profil = gson.fromJson(jsonStr, ProfilListeToDo::class.java)
-                    }
+                if (!success) {
+                    ToastUtil.newToast(this@MainActivity, "Incorrect password!")
+                } else {
+                    // if authenticated
+                    ToastUtil.newToast(this@MainActivity, "Welcome $login!")
 
                     // start activity
-                    val intent = Intent(this, ChoixListActivity::class.java)
-                    intent.putExtra("profil", this.profil)
-//                    startActivityForResult(intent, requestCode)
-                    Log.i(CAT,"start activity!")
+                    startActivity(intent)
+                    Log.i(CAT, "start activity!")
                 }
             }
-
         }
 
+        // cb for remember or not
         cbRemember.setOnClickListener {
             ToastUtil.newToast(this, "click on cb")
             editor.putBoolean("remember", cbRemember.isChecked)
             editor.commit()
             if (!cbRemember.isChecked) {
                 editor.putString("login", "")
+                editor.putString("password", "")
                 editor.commit()
             }
         }
-
-        btnTest.setOnClickListener {
-            loadAndDisplayPosts()
-        }
     }
 
+    //generate menu
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater: MenuInflater = menuInflater
         inflater.inflate(R.menu.menu, menu)
         return true
     }
 
+    // select menu
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val id = item.itemId
-        when (id) {
+        when (item.itemId) {
             R.id.menu_settings -> {
                 ToastUtil.newToast(this, "Menu : click on preferences")
                 val iGP = Intent(this, SettingsActivity::class.java)
@@ -132,6 +146,7 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    // onStart, load users settings
     override fun onStart() {
         super.onStart()
         // relire les preferences partagees de l'app
@@ -143,84 +158,32 @@ class MainActivity : AppCompatActivity() {
         // si la case est cochee, on utilise les preferences pour definir le login
         if (cbRemember.isChecked) {
             val l = sp.getString("login", "login inconnu")
+            val p = sp.getString("password", "")
             edtPseudo.setText(l)
+            edtPassword.setText(p)
         } else {
             // sinon, le champ doit etre vide
-            edtPseudo.setText("")
+            edtPassword.setText("")
         }
 
     }
 
+    // when restart MainActivity, clear the saved token
+    override fun onRestart() {
+        super.onRestart()
+        editor.putString("edtToken", "")
+        editor.commit()
+    }
+
+    // onResume, checkout network
     override fun onResume() {
         super.onResume()
         // S'il n'y a pas de reseau, on désactive le bouton
         btnOK.isEnabled = verifReseau()
     }
 
-    override fun onRestart() {
-        super.onRestart()
-    }
-
-    // receive data from ChoixListActivity after press "back"
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode) {
-            requestCode -> if (resultCode === RESULT_OK) {
-                val returnData: ProfilListeToDo = data!!.getSerializableExtra("profil") as ProfilListeToDo
-                this.profil = returnData
-            }
-        }
-        Log.i(CAT, this.profil.toString())
-
-        // stock changes
-        val response = gson.toJson(this.profil)
-        editorJson.putString(login, java.lang.String.valueOf(response)) // save Json
-        editorJson.commit() // stock
-    }
-
-    // TEST: get data from API
-    private fun loadAndDisplayPosts() {
-
-        activityScope.launch {
-//            showProgress(true)
-            try {
-                val posts = DataProvider.getPostFromApi()
-                Log.i(CAT, posts.toString())
-
-            } catch (e: Exception) {
-                ToastUtil.newToast(this@MainActivity, "${e.message}")
-                Log.i(CAT, "${e.message}")
-            }
-//            showProgress(false)
-        }
-    }
-
-    // get token of user
-    private fun signInGetToken(login: String, password: String) {
-
-        activityScope.launch {
-//            showProgress(true)
-            try {
-                val gets = DataProvider.signIn(login, password)
-                val success = gets.success
-                this@MainActivity.isSuccess = success.toBoolean()
-                val token = gets.token
-                Log.i(CAT, success.toString())
-                if (success=="false") {
-                    ToastUtil.newToast(this@MainActivity, "Incorrect password!")
-                } else {
-                    ToastUtil.newToast(this@MainActivity, "Welcome $login!")
-                    this@MainActivity.token = token
-                }
-            } catch (e: Exception) {
-                ToastUtil.newToast(this@MainActivity, "ERROR!"+"\n"+"${e.message}")
-                Log.i(CAT, "${e.message}")
-            }
-//            showProgress(false)
-        }
-    }
-
-    fun verifReseau(): Boolean {
+    // checkout network
+    private fun verifReseau(): Boolean {
         // On vérifie si le réseau est disponible,
         // si oui on change le statut du bouton de connexion
         val cnMngr = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -231,8 +194,7 @@ class MainActivity : AppCompatActivity() {
             val netState = netInfo.state
             if (netState.compareTo(NetworkInfo.State.CONNECTED) == 0) {
                 bStatut = true
-                val netType = netInfo.type
-                when (netType) {
+                when (netInfo.type) {
                     ConnectivityManager.TYPE_MOBILE -> sType = "Réseau mobile détecté"
                     ConnectivityManager.TYPE_WIFI -> sType = "Réseau wifi détecté"
                 }

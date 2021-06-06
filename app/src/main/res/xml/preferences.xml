@@ -17,7 +17,15 @@
         <EditTextPreference
             android:defaultValue="true"
             android:key="login"
+            android:selectAllOnFocus="true"
             android:title="Login"
+            android:visibility="visible" />
+        <EditTextPreference
+            android:defaultValue="Default value"
+            android:key="password"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Password"
             android:visibility="visible" />
         <!--        <EditTextPreference-->
 <!--            android:defaultValue=""-->
@@ -26,6 +34,7 @@
     </PreferenceCategory>
     <EditTextPreference
         android:defaultValue="false"
+        android:editable="false"
         android:key="edtToken"
         android:selectAllOnFocus="true"
         android:singleLine="true"

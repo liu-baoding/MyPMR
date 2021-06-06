@@ -2,14 +2,14 @@ package com.example.todolist.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class demo(
+data class GetLists(
     @SerializedName("success")
     val success: String,
     @SerializedName("lists")
-    val lists: List<list>,
+    val lists: List<OneList>,
 )
 
-data class list(
+data class OneList(
     @SerializedName("id")
     val id: String,
     @SerializedName("label")
