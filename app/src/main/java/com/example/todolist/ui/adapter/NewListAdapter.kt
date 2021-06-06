@@ -1,4 +1,4 @@
-package com.example.test.adapter
+package com.example.todolist.ui.adapter
 
 import android.view.LayoutInflater
 import android.view.View
@@ -6,10 +6,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolist.R
-import com.example.todolist.model.ListeToDo
+import com.example.todolist.data.model.OneList
 
 
-class ListAdapter(private val dataset: MutableList<ListeToDo>): RecyclerView.Adapter<ListAdapter.ItemViewHolder>()  {
+class NewListAdapter(private val dataset: MutableList<OneList>) :
+    RecyclerView.Adapter<NewListAdapter.ItemViewHolder>() {
 
     private var mOnItemClickListener: OnItemClickListener? = null
 
@@ -20,7 +21,7 @@ class ListAdapter(private val dataset: MutableList<ListeToDo>): RecyclerView.Ada
 
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
         holder.bind(dataset[position])
-        holder.numView.text = (position+1).toString()
+        holder.numView.text = (position + 1).toString()
 
         holder.itemView.setOnClickListener {
             if (mOnItemClickListener != null) {
@@ -31,10 +32,8 @@ class ListAdapter(private val dataset: MutableList<ListeToDo>): RecyclerView.Ada
 
     override fun getItemCount() = dataset.size
 
-    public fun addData(text: String) {
+    fun addData(uneListe: OneList) {
         // add data in the list to display
-        var uneListe: ListeToDo = ListeToDo()
-        uneListe.titreListeToDo = text
         dataset.add(uneListe)
         notifyItemChanged(dataset.size)
     }
@@ -43,12 +42,12 @@ class ListAdapter(private val dataset: MutableList<ListeToDo>): RecyclerView.Ada
         mOnItemClickListener = listener
     }
 
-    class ItemViewHolder(itemView: View): RecyclerView.ViewHolder(itemView){
-        val textView = itemView.findViewById<TextView>(R.id.itemList)
-        val numView = itemView.findViewById<TextView>(R.id.number)
+    class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val textView: TextView = itemView.findViewById(R.id.itemList)
+        val numView: TextView = itemView.findViewById(R.id.number)
 
-        fun bind(list: ListeToDo) {
-            textView.text = list.titreListeToDo
+        fun bind(list: OneList) {
+            textView.text = list.label
         }
     }
 
