@@ -30,9 +30,9 @@ class SettingsActivity() : PreferenceActivity(), Preference.OnPreferenceChangeLi
                     + " pref manipulee : " + preference.key, Toast.LENGTH_SHORT
         )
         t.show()
-        if ((newValue == false)) {
-            edtp!!.text = ""
-        }
+//        if ((newValue == false)) {
+//            edtp!!.text = ""
+//        }
         return true
     }
 }

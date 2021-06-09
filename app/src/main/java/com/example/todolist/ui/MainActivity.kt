@@ -13,7 +13,6 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.example.todolist.R
 import com.example.todolist.data.DataProvider
-import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 
@@ -23,13 +22,10 @@ class MainActivity : AppCompatActivity() {
     private val CAT: String = "TODO_MAIN"
     private lateinit var sp: SharedPreferences
     private lateinit var editor: SharedPreferences.Editor
-    private lateinit var spJson: SharedPreferences
-    private lateinit var editorJson: SharedPreferences.Editor
     private lateinit var login: String
     private lateinit var password: String
     private lateinit var token: String
     private var success: Boolean = false
-    val gson = Gson()
 
     // coroutine
     private val activityScope = CoroutineScope(
@@ -47,10 +43,6 @@ class MainActivity : AppCompatActivity() {
         editor = sp.edit()
 
         cbRemember.isChecked = false // don't remember the user in default
-
-        // a SP object to pass messenger between activities
-        spJson = getSharedPreferences("SP_Data_List", MODE_PRIVATE)
-        editorJson = spJson.edit()
 
         // press OK to get authentication and start next activity
         btnOK.setOnClickListener {
@@ -80,7 +72,7 @@ class MainActivity : AppCompatActivity() {
                             // To save token for all users (check the cb or not), this
                             // can't be in the same PreferenceCategory in the XML file
                             editor.putString("edtToken", token)
-                            editor.commit()
+                            editor.apply()
                         } catch (e: Exception) {
                             // reset the field success
                             this@MainActivity.success = false
@@ -95,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                 if (cbRemember.isChecked) {
                     editor.putString("login", login)
                     editor.putString("password", password)
-                    editor.commit()
+                    editor.apply()
                 }
 
                 if (!success) {
@@ -115,12 +107,7 @@ class MainActivity : AppCompatActivity() {
         cbRemember.setOnClickListener {
             ToastUtil.newToast(this, "click on cb")
             editor.putBoolean("remember", cbRemember.isChecked)
-            editor.commit()
-            if (!cbRemember.isChecked) {
-                editor.putString("login", "")
-                editor.putString("password", "")
-                editor.commit()
-            }
+            editor.apply()
         }
     }
 
@@ -136,6 +123,17 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.menu_settings -> {
                 ToastUtil.newToast(this, "Menu : click on preferences")
+                editor.putBoolean("remember", cbRemember.isChecked)
+                editor.apply()
+                if (!cbRemember.isChecked) {
+                    editor.putString("login", "")
+                    editor.putString("password", "")
+                    editor.apply()
+                } else {
+                    editor.putString("login", edtPseudo.text.toString())
+                    editor.putString("password", edtPassword.text.toString())
+                    editor.apply()
+                }
                 val iGP = Intent(this, SettingsActivity::class.java)
                 iGP.apply {
 //                    putExtra("URL","http://tomnab.fr/fixture/")
@@ -156,16 +154,16 @@ class MainActivity : AppCompatActivity() {
         cbRemember.isChecked = cbR
 
         // si la case est cochee, on utilise les preferences pour definir le login
-        if (cbRemember.isChecked) {
+        if (cbR) {
             val l = sp.getString("login", "login inconnu")
             val p = sp.getString("password", "")
             edtPseudo.setText(l)
             edtPassword.setText(p)
         } else {
             // sinon, le champ doit etre vide
+            edtPseudo.setText("")
             edtPassword.setText("")
         }
-
     }
 
     // when restart MainActivity, clear the saved token

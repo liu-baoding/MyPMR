@@ -32,7 +32,6 @@ class ShowListActivity : AppCompatActivity() {
     private val TRUE = "1"
     private val FALSE = "0"
     private val oldMap: HashMap<Int, Boolean> = HashMap()
-    private val newMap: HashMap<Int, Boolean> = HashMap()
 
     // coroutine
     private val activityScope = CoroutineScope(
@@ -65,10 +64,8 @@ class ShowListActivity : AppCompatActivity() {
                 val itemId = items[position].id
                 // change in API
                 if (isChecked) {
-//                    changeItem(this@ShowListActivity.listId, itemId, TRUE, token)
                     ToastUtil.newToast(context, "$itemName has been done")
                 } else {
-//                    changeItem(this@ShowListActivity.listId, itemId, FALSE, token)
                     ToastUtil.newToast(context, "$itemName to do")
                 }
             }

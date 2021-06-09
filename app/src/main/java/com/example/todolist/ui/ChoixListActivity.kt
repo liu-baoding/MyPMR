@@ -14,10 +14,7 @@ import com.example.todolist.R
 import com.example.todolist.data.DataProvider
 import com.example.todolist.data.model.OneList
 import kotlinx.android.synthetic.main.activity_choix_list.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 
 @Suppress("DEPRECATION")
@@ -65,6 +62,7 @@ class ChoixListActivity : AppCompatActivity() {
             } finally {
                 Log.i(CAT, "LOAD DONE")
             }
+//            delay(5000L)
             showProgress(false)
         }
     }
