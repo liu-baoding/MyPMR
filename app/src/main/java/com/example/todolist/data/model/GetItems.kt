@@ -9,6 +9,7 @@ data class GetItems(
     val lists: List<OneItem>,
 )
 
+
 data class OneItem(
     @SerializedName("id")
     val id: String,

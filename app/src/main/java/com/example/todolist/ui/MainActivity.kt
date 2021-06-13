@@ -10,9 +10,17 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import com.example.todolist.R
 import com.example.todolist.data.DataProvider
+import com.example.todolist.data.DbDataProvider
+import com.example.todolist.data.model.ItemChangeDb
+import com.example.todolist.data.model.ItemDb
+import com.example.todolist.data.model.OneItem
+import com.example.todolist.data.model.UserDb
+import kotlinx.android.synthetic.main.activity_choix_list.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 
@@ -27,6 +35,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var token: String
     private var success: Boolean = false
 
+    private val ONLINE = true
+    private val OFFLINE = false
+    private var mode = false
+
+    private lateinit var dbDataProvider: DbDataProvider
+
+    private lateinit var itemChanges: List<ItemChangeDb>
+    private lateinit var itemAdds: List<ItemChangeDb>
+
     // coroutine
     private val activityScope = CoroutineScope(
         SupervisorJob() +
@@ -37,13 +54,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        showProgress(false)
         Log.i(CAT, "onCreate") // trace d'execution
 
         sp = PreferenceManager.getDefaultSharedPreferences(this)
         editor = sp.edit()
 
-        cbRemember.isChecked = false // don't remember the user in default
+        dbDataProvider = DbDataProvider(application)
 
+        cbRemember.isChecked = false // don't remember the user in default
+        success = false // status in default
+
+        chooseRunMode()
+    }
+
+
+    private fun activityInitOnline() {
         // press OK to get authentication and start next activity
         btnOK.setOnClickListener {
             login = edtPseudo.text.toString()
@@ -56,49 +82,14 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this, ChoixListActivity::class.java)
                 intent.putExtra("pseudo", login)
 
-                // get authentication, block Main thread before finished, save token of user
-                runBlocking {
-                    Log.d(CAT, "runBlocking...  currentThread：${Thread.currentThread().name}")
-                    val job = launch {
-                        try {
-//                            // test use
-//                            val gets = DataProvider.signIn("liu", "baoding")
-                            val gets = DataProvider.signIn(login, password)
-                            val success = gets.success.toBoolean()
-                            this@MainActivity.success = success
-                            val token = gets.token
-                            this@MainActivity.token = token
-                            // save token of user
-                            // To save token for all users (check the cb or not), this
-                            // can't be in the same PreferenceCategory in the XML file
-                            editor.putString("edtToken", token)
-                            editor.apply()
-                        } catch (e: Exception) {
-                            // reset the field success
-                            this@MainActivity.success = false
-                            ToastUtil.newToast(this@MainActivity, "ERROR!" + "\n" + "${e.message}")
-                            Log.i(CAT, "${e.message}")
-                        }
-                    }
-                    job.join()
-                }
-
                 // save settings
                 if (cbRemember.isChecked) {
                     editor.putString("login", login)
                     editor.putString("password", password)
                     editor.apply()
-                }
 
-                if (!success) {
-                    ToastUtil.newToast(this@MainActivity, "Incorrect password!")
-                } else {
-                    // if authenticated
-                    ToastUtil.newToast(this@MainActivity, "Welcome $login!")
-
-                    // start activity
-                    startActivity(intent)
-                    Log.i(CAT, "start activity!")
+                    // get authentication, save token of user, login
+                    getAuthenLoginOnline(intent)
                 }
             }
         }
@@ -108,6 +99,209 @@ class MainActivity : AppCompatActivity() {
             ToastUtil.newToast(this, "click on cb")
             editor.putBoolean("remember", cbRemember.isChecked)
             editor.apply()
+        }
+    }
+
+    private fun activityInitOffline() {
+        // press OK to get authentication and start next activity
+        btnOK.setOnClickListener {
+            // when offline, token will not be used
+            login = edtPseudo.text.toString()
+            password = edtPassword.text.toString()
+
+            // login can't be empty
+            if (login == "") {
+                ToastUtil.newToast(this, "Please enter your login!")
+            } else {
+                val intent = Intent(this, ChoixListActivity::class.java)
+                intent.putExtra("pseudo", login)
+
+                // save settings
+                if (cbRemember.isChecked) {
+                    editor.putString("login", login)
+                    editor.putString("password", password)
+                    editor.apply()
+                }
+
+                // get authentication, block Main thread before finished, save token of user
+                getAuthenLoginOffline(intent)
+            }
+        }
+
+        // cb for remember or not
+        cbRemember.setOnClickListener {
+            ToastUtil.newToast(this, "click on cb")
+            editor.putBoolean("remember", cbRemember.isChecked)
+            editor.apply()
+        }
+    }
+
+    private fun getAuthenLoginOnline(intent: Intent) {
+        activityScope.launch {
+            showProgress(true)
+            try {
+                val gets = DataProvider.signIn(login, password)
+                val success = gets.success.toBoolean()
+                this@MainActivity.success = success
+                val token = gets.token
+                this@MainActivity.token = token
+                // save token of user
+                // To save token for all users (check the cb or not), this
+                // can't be in the same PreferenceCategory in the XML file
+                editor.putString("edtToken", token)
+                editor.apply()
+            } catch (e: Exception) {
+                // reset the field success
+                this@MainActivity.success = false
+                ToastUtil.newToast(this@MainActivity, "ERROR!" + "\n" + "${e.message}")
+                Log.i(CAT, "${e.message}")
+            } finally {
+                if (!success) {
+                    ToastUtil.newToast(this@MainActivity, "Incorrect password!")
+                } else {
+                    // if authenticated
+                    ToastUtil.newToast(this@MainActivity, "Welcome $login!")
+
+                    // add the user in db
+                    val newUserDb = UserDb(login, password, token)
+                    addUserInDb(newUserDb)
+
+                    // apply changes in API
+                    try {
+                        // items to change status
+                        itemChanges = dbDataProvider.getAllItemChanges().filter {
+                            it.operation == "change" && it.token == token
+                        }
+                        itemAdds = dbDataProvider.getAllItemChanges().filter {
+                            it.operation == "add" && it.token == token
+                        }
+                    } catch (e: Exception) {
+                        // reset the field success
+                        this@MainActivity.success = false
+                        ToastUtil.newToast(this@MainActivity, "ERROR!" + "\n" + "${e.message}")
+                        Log.i(CAT, "${e.message}")
+                    }
+                    if (itemChanges.isNotEmpty() || itemAdds.isNotEmpty()) {
+                        ToastUtil.newToast(
+                            this@MainActivity,
+                            "Uploading your changes stored locally..."
+                        )
+                        // record mapping between id_in_db and id_in_API for the added items
+                        val map = mutableMapOf<String, String>()
+
+                        Log.i(CAT, "add: $itemAdds")
+                        itemAdds.forEach {
+                            try {
+                                DataProvider.addItem(
+                                    it.listContainerId,
+                                    it.label,
+                                    it.token
+                                ).aItem.also { it1: OneItem ->
+                                    dbDataProvider.addUpdateNewItem(
+                                        ItemDb(
+                                            it1.id,
+                                            it1.label,
+                                            it1.url,
+                                            it1.checkedStr,
+                                            it.listContainerId
+                                        )
+                                    )
+                                    map[it.itemId] = it1.id
+                                }
+                            } catch (e: Exception) {
+                                Log.i(CAT, "add error: $it, $e")
+                            } finally {
+                                // delete record if successfully applied
+                                dbDataProvider.deleteItemRecord(it.itemId)
+                            }
+                        }
+                        Log.i(CAT, "Apply adds done")
+                        Log.i(CAT, "map: $map")
+                        Log.i(CAT, "change: $itemChanges")
+                        itemChanges.forEach {
+                            try {
+                                // replace id for new added item
+                                var newId = it.itemId
+                                // id of changes for new added items begin with "new_"
+                                if (!it.itemId[0].isDigit()) {
+                                    map.filter { it1 ->
+                                        it.itemId.contains(it1.key)
+                                    }.forEach { it2 ->
+                                        // should have only one matched term
+                                        newId = it2.value
+                                    }
+                                }
+                                DataProvider.changeItem(
+                                    it.listContainerId,
+                                    newId,
+                                    it.checked,
+                                    it.token
+                                )
+                            } catch (e: Exception) {
+                                Log.i(CAT, "change error: $it, $e")
+                            } finally {
+                                // delete record if successfully applied
+                                dbDataProvider.deleteItemRecord(it.itemId)
+                            }
+                        }
+                        Log.i(CAT, "Apply changes done")
+                        delay(1000L)
+                        ToastUtil.newToast(this@MainActivity, "Apply changes done.")
+                    }
+
+                    // start activity
+                    intent.putExtra("mode", this@MainActivity.mode)
+                    startActivity(intent)
+                    Log.i(CAT, "start activity!")
+                }
+            }
+            showProgress(false)
+        }
+    }
+
+    private fun getAuthenLoginOffline(intent: Intent) {
+        activityScope.launch {
+            try {
+                val gets = dbDataProvider.getUserByPseudo(login)
+                when {
+                    gets.isEmpty() -> {
+                        // no match
+                        ToastUtil.newToast(this@MainActivity, "Never stored user!")
+                        this@MainActivity.success = false
+                    }
+                    gets[0].password != password -> {
+                        // have match, and only one since pseudo primary key
+                        ToastUtil.newToast(this@MainActivity, "Password incorrect!")
+                        this@MainActivity.success = false
+                    }
+                    else -> {
+                        ToastUtil.newToast(this@MainActivity, "Welcome $login!")
+                        this@MainActivity.success = true
+                        // get token of the user
+                        editor.putString("edtToken", gets[0].token)
+                        editor.apply()
+                    }
+                }
+            } catch (e: Exception) {
+                // reset the field success
+                this@MainActivity.success = false
+                ToastUtil.newToast(this@MainActivity, "ERROR!" + "\n" + "${e.message}")
+                Log.i(CAT, "${e.message}")
+            } finally {
+                if (success) {
+                    // start activity
+                    intent.putExtra("mode", this@MainActivity.mode)
+                    startActivity(intent)
+                    Log.i(CAT, "start activity!")
+                }
+            }
+        }
+    }
+
+    private fun addUserInDb(newUserDb: UserDb) {
+        activityScope.launch {
+            dbDataProvider.addNewUser(newUserDb)
+            Log.i(CAT, "Add new user in db")
         }
     }
 
@@ -202,4 +396,42 @@ class MainActivity : AppCompatActivity() {
         return bStatut
     }
 
+    // choose run mode according to the network
+    private fun chooseRunMode() {
+        // for test use
+//        if (!verifReseau()) {
+        if (verifReseau()) {
+            mode = ONLINE
+            btnOK.isEnabled = true
+            activityInitOnline()
+        } else {
+            mode = OFFLINE
+            showAlertDialogOffline()
+            activityInitOffline()
+        }
+    }
+
+    // a dialog to inform user when offline
+    private fun showAlertDialogOffline() {
+        with(AlertDialog.Builder(this)) {
+            setTitle("Attention!")
+            setMessage(
+                "The network is now unavailable, do you want to continue?\n" +
+                        "You can only check/uncheck todo items, and changes will be applied when application restart with network available."
+            )
+            setPositiveButton("Yes") { dialog, which ->
+                btnOK.isEnabled = true
+            }
+            setNegativeButton("No") { dialog, which ->
+                btnOK.isEnabled = false
+            }
+            create()
+        }.show()
+    }
+
+    // display progress bar when loading data
+    private fun showProgress(show: Boolean) {
+        val progress = progressMain
+        progress.isVisible = show
+    }
 }

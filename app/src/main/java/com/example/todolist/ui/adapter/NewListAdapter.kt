@@ -38,6 +38,17 @@ class NewListAdapter(private val dataset: MutableList<OneList>) :
         notifyItemChanged(dataset.size)
     }
 
+    fun addAllData(desListes: List<OneList>) {
+        // add data in the list to display
+        dataset.addAll(desListes)
+        notifyItemChanged(dataset.size)
+    }
+
+//    fun show(lists: List<OneList>) {
+//        addAllData(lists)
+//        notifyDataSetChanged()
+//    }
+
     fun setOnItemClickListener(listener: OnItemClickListener?) {
         mOnItemClickListener = listener
     }

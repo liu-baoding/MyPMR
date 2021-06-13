@@ -5,14 +5,17 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.todolist.ui.adapter.NewListAdapter
 import com.example.todolist.R
 import com.example.todolist.data.DataProvider
+import com.example.todolist.data.DbDataProvider
+import com.example.todolist.data.model.ListDb
 import com.example.todolist.data.model.OneList
+import com.example.todolist.ui.adapter.NewListAdapter
 import kotlinx.android.synthetic.main.activity_choix_list.*
 import kotlinx.coroutines.*
 
@@ -26,7 +29,13 @@ class ChoixListActivity : AppCompatActivity() {
     private lateinit var token: String
     private var lists: MutableList<OneList> = mutableListOf()
 
+    private var mode = false
+
+    private lateinit var dbDataProvider: DbDataProvider
+
     private lateinit var adapter: NewListAdapter
+
+    private val viewModel by viewModels<ListViewModel>()
 
     // coroutine
     private val activityScope = CoroutineScope(
@@ -37,34 +46,62 @@ class ChoixListActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_choix_list)
+        showProgress(false)
         pseudo = intent.getStringExtra("pseudo").toString()
         Log.i(CAT, "create")
 
         this.sp = PreferenceManager.getDefaultSharedPreferences(this)
         this.token = this.sp.getString("edtToken", "defString").toString()
 
-        showContent()
+        this.mode = intent.getBooleanExtra("mode", false)
+        // for test use
+//        this.mode = false
+
+        dbDataProvider = DbDataProvider(application)
+
+        setUpPageAdapter()
+
+        if (mode) {
+            showContentOnline()
+        } else {
+            showContentOffline()
+        }
     }
 
     // get lists from API
     private fun loadLists() {
-        activityScope.launch {
-            showProgress(true)
-            try {
-                val lists = DataProvider.getLists(token).lists
-                for (list in lists) {
-                    this@ChoixListActivity.adapter.addData(list)
+        viewModel.loadLists(token, pseudo)
+        viewModel.datas.observe(this, { viewState ->
+            when (viewState) {
+                is ListViewModel.ViewState.Content -> {
+                    adapter.addAllData(viewState.posts)
+                    showProgress(false)
                 }
-                Log.i(CAT, lists.toString())
-            } catch (e: Exception) {
-                ToastUtil.newToast(this@ChoixListActivity, "${e.message}")
-                Log.i(CAT, "${e.message}")
-            } finally {
-                Log.i(CAT, "LOAD DONE")
+                ListViewModel.ViewState.Loading -> showProgress(true)
+                is ListViewModel.ViewState.Error -> {
+                    showProgress(false)
+                    ToastUtil.newToast(this@ChoixListActivity, viewState.message)
+                }
             }
-//            delay(5000L)
-            showProgress(false)
-        }
+        })
+    }
+
+    // get lists from db
+    private fun loadListsDb() {
+        viewModel.loadListsDb(pseudo)
+        viewModel.datas.observe(this, { viewState ->
+            when (viewState) {
+                is ListViewModel.ViewState.Content -> {
+                    adapter.addAllData(viewState.posts)
+                    showProgress(false)
+                }
+                ListViewModel.ViewState.Loading -> showProgress(true)
+                is ListViewModel.ViewState.Error -> {
+                    showProgress(false)
+                    ToastUtil.newToast(this@ChoixListActivity, viewState.message)
+                }
+            }
+        })
     }
 
     // add a new list to API
@@ -74,7 +111,10 @@ class ChoixListActivity : AppCompatActivity() {
             try {
                 val returnList = DataProvider.addList(label, token).aList
                 this@ChoixListActivity.adapter.addData(returnList)
-                Log.i(CAT, returnList.toString())
+                // convert data model and add to db
+                val newList = convertApiToDb(returnList)
+                dbDataProvider.addNewList(newList)
+                Log.i(CAT, "Add to db: $newList")
             } catch (e: Exception) {
                 ToastUtil.newToast(this@ChoixListActivity, "${e.message}")
                 Log.i(CAT, "${e.message}")
@@ -83,6 +123,11 @@ class ChoixListActivity : AppCompatActivity() {
             }
             showProgress(false)
         }
+    }
+
+    // convert the list model in API to list model in db
+    private fun convertApiToDb(oldList: OneList): ListDb {
+        return ListDb(oldList.id, oldList.label, this.pseudo)
     }
 
 
@@ -101,41 +146,10 @@ class ChoixListActivity : AppCompatActivity() {
         Log.i(CAT, "Restart")
     }
 
-    // display lists
-    private fun showContent() {
-        val recyclerView = findViewById<RecyclerView>(R.id.reViewList)
-
-//        // for test use
-//        this.lists.add(OneList("0", "test"))
-
-        adapter = NewListAdapter(lists)
-
+    // display lists in mode online
+    private fun showContentOnline() {
+        // load lists from API
         loadLists()
-
-        // start ShowListActivity
-        val intent = Intent(this, ShowListActivity::class.java)
-
-        // action when click on the list
-        adapter.setOnItemClickListener(object : NewListAdapter.OnItemClickListener {
-            override fun onItemClick(position: Int) {
-                val listName = lists[position].label
-                val listId = lists[position].id
-                ToastUtil.newToast(context, "this is $listName")
-                // pass the clicked list
-                intent.putExtra("listName", listName)
-                intent.putExtra("listId", listId)
-                startActivity(intent)
-            }
-        })
-
-        recyclerView.adapter = adapter
-        recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
-
-        this.title = "$pseudo's Todo-lists" // title of this page
-
-        etNewList.setOnClickListener {
-            ToastUtil.newToast(context, "Add a Todo list")
-        }
 
         btnOKList.setOnClickListener {
             val newListName = etNewList.text.toString()
@@ -150,6 +164,63 @@ class ChoixListActivity : AppCompatActivity() {
                 etNewList.setText("") //clear the input area
             }
         }
+    }
+
+    // display lists in mode offline
+    private fun showContentOffline() {
+        // deactivate the two views
+        etNewList.isEnabled = false
+        btnOKList.isEnabled = false
+
+        // load lists from db
+        loadListsDb()
+//        etNewList.setOnClickListener {
+//            ToastUtil.newToast(context, "Add a Todo list")
+//        }
+//
+//        btnOKList.setOnClickListener {
+//            val newListName = etNewList.text.toString()
+//            if (newListName == "") {
+//                ToastUtil.newToast(context, "Please enter the name of list")
+//            } else {
+//                ToastUtil.newToast(context, "Add \"$newListName\"")
+//
+//                // add new list
+//                addList(newListName, this.token)
+//
+//                etNewList.setText("") //clear the input area
+//            }
+//            ToastUtil.newToast(context, "Add new list function not available offline.")
+//        }
+    }
+
+    // set up page and adapter
+    private fun setUpPageAdapter() {
+        val recyclerView = findViewById<RecyclerView>(R.id.reViewList)
+
+        adapter = NewListAdapter(lists)
+
+        // start ShowListActivity
+        val intent = Intent(this, ShowListActivity::class.java)
+
+        // action when click on the list
+        adapter.setOnItemClickListener(object : NewListAdapter.OnItemClickListener {
+            override fun onItemClick(position: Int) {
+                val listName = lists[position].label
+                val listId = lists[position].id
+//                ToastUtil.newToast(context, "this is $listName")
+                // pass the clicked list
+                intent.putExtra("listName", listName)
+                intent.putExtra("listId", listId)
+                intent.putExtra("mode", mode)
+                startActivity(intent)
+            }
+        })
+
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+
+        this.title = "$pseudo's Todo-lists" // title of this page
     }
 
     // display progress bar when loading data

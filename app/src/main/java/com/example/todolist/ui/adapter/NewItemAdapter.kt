@@ -43,7 +43,13 @@ class NewItemAdapter(private val dataset: MutableList<OneItem>) :
         notifyItemChanged(dataset.size)
     }
 
-    fun getDataSet(): MutableList<OneItem>{
+    fun addAllData(items: List<OneItem>) {
+        for (item in items) {
+            addData(item)
+        }
+    }
+
+    fun getDataSet(): MutableList<OneItem> {
         return dataset
     }
 

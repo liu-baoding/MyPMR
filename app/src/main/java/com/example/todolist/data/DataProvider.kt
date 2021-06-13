@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object DataProvider {
 
 
-    private val BASE_URL = "http://tomnab.fr/todo-api/"
+    private const val BASE_URL = "http://tomnab.fr/todo-api/"
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
