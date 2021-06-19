@@ -206,6 +206,8 @@ class MainActivity : AppCompatActivity() {
                                             it.listContainerId
                                         )
                                     )
+                                    // delete the locally stocked item
+                                    dbDataProvider.deleteItemById(it.itemId)
                                     map[it.itemId] = it1.id
                                 }
                             } catch (e: Exception) {
